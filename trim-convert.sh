@@ -61,7 +61,7 @@ EXT="${INPUT_FILE##*.}"
 VIDEO_OUTPUT="${OUTPUT_PREFIX}.${EXT}"
 AUDIO_OUTPUT="${OUTPUT_PREFIX}.aac"
 
-echo "🎬 Processing video: $INPUT_FILE"
+echo "Processing video: $INPUT_FILE"
 
 # Get video duration
 duration=$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "$INPUT_FILE")
@@ -72,21 +72,21 @@ FF_CMD="ffmpeg -v warning -stats -i \"$INPUT_FILE\""
 # Add start time if specified
 if [ ! -z "$START_TIME" ]; then
     FF_CMD="$FF_CMD -ss $START_TIME"
-    echo "⏱️  Start time: $START_TIME"
+    echo "Start time: $START_TIME"
 else
-    echo "⏱️  Start time: Beginning of file"
+    echo "Start time: Beginning of file"
 fi
 
 # Add end time if specified
 if [ ! -z "$END_TIME" ]; then
     FF_CMD="$FF_CMD -to $END_TIME"
-    echo "⏱️  End time: $END_TIME"
+    echo "End time: $END_TIME"
 else
-    echo "⏱️  End time: End of file"
+    echo "End time: End of file"
 fi
 
 # Try to use stream copy for speed
-echo "🔄 Processing video - using fast copy method..."
+echo "Processing video - using fast copy method..."
 FF_CMD="$FF_CMD -c:v copy -c:a copy -avoid_negative_ts 1 \"$VIDEO_OUTPUT\""
 
 # Execute the command
@@ -94,7 +94,7 @@ eval $FF_CMD
 
 # Check if the command succeeded
 if [ $? -ne 0 ]; then
-    echo "⚠️  Fast method failed, trying with re-encoding..."
+    echo "Fast method failed, trying with re-encoding..."
     # If stream copy failed, fall back to re-encoding
     FF_CMD="ffmpeg -v warning -stats -i \"$INPUT_FILE\""
     
@@ -114,13 +114,13 @@ if [ $? -ne 0 ]; then
     eval $FF_CMD
 fi
 
-echo "🎵 Extracting audio (AAC)..."
+echo "Extracting audio (AAC)..."
 ffmpeg -v warning -stats -i "$VIDEO_OUTPUT" -vn -acodec copy "$AUDIO_OUTPUT"
 
 # Get file sizes
 video_size=$(du -h "$VIDEO_OUTPUT" | cut -f1)
 audio_size=$(du -h "$AUDIO_OUTPUT" | cut -f1)
 
-echo "✅ Done!"
-echo "📼 Trimmed video: $VIDEO_OUTPUT ($video_size)"
-echo "🔊 Audio file: $AUDIO_OUTPUT ($audio_size)"
+echo "Done!"
+echo "Trimmed video: $VIDEO_OUTPUT ($video_size)"
+echo "Audio file: $AUDIO_OUTPUT ($audio_size)"
