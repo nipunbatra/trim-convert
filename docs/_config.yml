@@ -52,3 +52,4 @@ exclude:
 # Include
 include:
   - _pages
+  - README.md
