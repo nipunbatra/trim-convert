@@ -2,11 +2,12 @@ title: Video Toolkit
 description: A fast and efficient command-line tool for trimming MP4 videos with minimal processing and automatic audio extraction
 url: https://nipunbatra.github.io/video-toolkit
 baseurl: /video-toolkit
+show_excerpts: false
 
 # Jekyll configuration
-theme: minima
+remote_theme: pages-themes/cayman@v0.2.0
 plugins:
-  - jekyll-feed
+  - jekyll-remote-theme
   - jekyll-sitemap
   - jekyll-seo-tag
 
@@ -26,9 +27,10 @@ twitter:
   username: nipunbatra
   card: summary
 
-# Navigation
-header_pages:
-  - index.md
+# Cayman theme configuration
+cayman:
+  github_ribbon: true
+  google_analytics: false
 
 # Markdown settings
 markdown: kramdown
