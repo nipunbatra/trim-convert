@@ -1,12 +1,13 @@
-A fast and efficient command-line tool for trimming MP4 videos with minimal processing and automatic audio extraction. This tool prioritizes speed by using stream copying when possible, falling back to re-encoding only when necessary for precision.
+A fast and efficient video trimming toolkit with both a **web interface** and **command-line tool** for MP4 video processing. Features visual trimming with drag-to-scrub sliders and automatic audio extraction.
 
 ## Features
 
-- **Trim videos** between specified start and end times
-- **Minimal processing** with smart stream copying when possible
-- **Extract audio** in AAC format automatically
-- **Cross-platform** compatibility (macOS and Linux)
-- **Flexible options** with sensible defaults
+- **Web Interface**: Interactive Gradio demo with drag-to-trim sliders
+- **Command Line**: Fast bash script for automated processing  
+- **Smart Trimming**: Visual video scrubbing to find exact cut points
+- **Audio Extraction**: Automatic AAC extraction with built-in player
+- **Minimal Processing**: Stream copying when possible for speed
+- **Cross-Platform**: Works on macOS, Linux, and Windows WSL
 
 ## Prerequisites
 
@@ -72,6 +73,30 @@ trim-convert --help
 
 Now you can use `trim-convert` from any directory.
 
+## Gradio Web Interface
+
+For an interactive video trimming experience, use the web interface:
+
+![Video Trimmer Interface](demo/screenshot-ui.jpg)
+
+### Quick Start
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Launch the web interface
+./run_demo.sh
+```
+
+### Features
+- **Video Upload**: Drag & drop MP4/MOV/AVI files  
+- **Visual Trimming**: Scrub sliders to find exact start/end points
+- **Live Preview**: Video seeks to slider position for precise editing
+- **Audio Playback**: Built-in player for extracted audio
+- **Download**: Get both trimmed video and AAC audio files
+
+The web interface automatically converts times and calls the command-line script for processing.
+
 ## File Permissions
 
 ### Understanding Script Permissions
@@ -99,7 +124,7 @@ Look for `x` in the permissions (e.g., `-rwxr-xr-x`). The `x` indicates execute 
 - **"Operation not permitted"**: Need `sudo` for system directories
 - **"Command not found"**: Script not in current directory or PATH
 
-## Usage
+## Command Line Usage
 
 ```bash
 ./trim-convert.sh [options] input.mp4
