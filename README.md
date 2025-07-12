@@ -1,5 +1,7 @@
 A fast and efficient video trimming toolkit with both a **web interface** and **command-line tool** for MP4 video processing. Features visual trimming with drag-to-scrub sliders and automatic audio extraction.
 
+**Documentation**: https://nipunbatra.github.io/video-toolkit/
+
 ## Features
 
 - **Web Interface**: Interactive Gradio demo with drag-to-trim sliders
