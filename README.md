@@ -5,6 +5,7 @@ A fast and efficient video trimming toolkit with both a **web interface** and **
 ## Features
 
 - **Web Interface**: Interactive Gradio demo with drag-to-trim sliders
+- **Google Drive Integration**: Load videos from and upload results to Google Drive
 - **Command Line**: Fast bash script for automated processing  
 - **Smart Trimming**: Visual video scrubbing to find exact cut points
 - **Audio Extraction**: Automatic AAC extraction with built-in player
@@ -91,13 +92,26 @@ pip install -r requirements.txt
 ```
 
 ### Features
-- **Video Upload**: Drag & drop MP4/MOV/AVI files  
+- **Video Upload**: Drag & drop MP4/MOV/AVI files or load from Google Drive
+- **Google Drive Integration**: Browse your entire Google Drive to pick videos
 - **Visual Trimming**: Scrub sliders to find exact start/end points
 - **Live Preview**: Video seeks to slider position for precise editing
 - **Audio Playback**: Built-in player for extracted audio
 - **Download**: Get both trimmed video and AAC audio files
+- **Google Drive Upload**: Upload trimmed files back to any folder in your Google Drive
 
 The web interface automatically converts times and calls the command-line script for processing.
+
+### Google Drive Setup (Optional)
+
+To enable Google Drive integration:
+
+1. **Create OAuth credentials**: Follow instructions in `SIMPLE_GOOGLE_SETUP.md`
+2. **Download `oauth_credentials.json`** and place in this directory
+3. **Run the app** - it will open your browser for one-time authentication
+4. **Done!** Browse your entire Google Drive and upload results back
+
+**Note**: Google Drive integration is completely optional - the app works perfectly without it.
 
 ## File Permissions
 
