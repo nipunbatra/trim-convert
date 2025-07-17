@@ -319,13 +319,14 @@ def download_from_google_drive(file_id, file_display, drive_manager):
 # Initialize Google Drive manager
 try:
     if GOOGLE_DRIVE_AVAILABLE and GoogleDrivePickerManager:
-        # Check if running on HF Space and use secret
+        # Check if running on HF Space and use secrets
         oauth_json = os.getenv('OAUTH_CREDENTIALS_JSON')
-        logger.info(f"🔍 Checking for OAuth secret... Found: {oauth_json is not None}")
+        oauth_token = os.getenv('OAUTH_TOKEN_PICKLE')
+        logger.info(f"🔍 Checking for OAuth secrets... Credentials: {oauth_json is not None}, Token: {oauth_token is not None}")
         
         if oauth_json:
-            logger.info(f"📝 OAuth secret length: {len(oauth_json)} characters")
-            # Write the secret to a temporary file
+            logger.info(f"📝 OAuth credentials length: {len(oauth_json)} characters")
+            # Write the credentials to a temporary file
             with open('oauth_credentials.json', 'w') as f:
                 f.write(oauth_json)
             logger.info("✅ OAuth credentials loaded from HF secret and written to file")
@@ -337,16 +338,43 @@ try:
             else:
                 logger.error("❌ Failed to create oauth_credentials.json file")
         else:
-            logger.info("ℹ️ No OAuth secret found - checking for local file")
+            logger.info("ℹ️ No OAuth credentials secret found - checking for local file")
             if os.path.exists('oauth_credentials.json'):
                 logger.info("✅ Using local oauth_credentials.json file")
             else:
                 logger.warning("⚠️ No OAuth credentials available (neither secret nor local file)")
         
-        # Set environment variable to disable browser for HF Spaces
-        if oauth_json:
+        if oauth_token:
+            import base64
+            logger.info(f"📝 OAuth token length: {len(oauth_token)} characters")
+            # Decode and write the token to a temporary file
+            try:
+                token_data = base64.b64decode(oauth_token)
+                with open('oauth_token.pickle', 'wb') as f:
+                    f.write(token_data)
+                logger.info("✅ OAuth token loaded from HF secret and written to file")
+                
+                # Verify file was created
+                if os.path.exists('oauth_token.pickle'):
+                    file_size = os.path.getsize('oauth_token.pickle')
+                    logger.info(f"✅ oauth_token.pickle created successfully ({file_size} bytes)")
+                else:
+                    logger.error("❌ Failed to create oauth_token.pickle file")
+            except Exception as e:
+                logger.error(f"❌ Failed to decode OAuth token: {e}")
+        else:
+            logger.info("ℹ️ No OAuth token secret found - checking for local file")
+            if os.path.exists('oauth_token.pickle'):
+                logger.info("✅ Using local oauth_token.pickle file")
+            else:
+                logger.warning("⚠️ No OAuth token available (neither secret nor local file)")
+        
+        # Set environment variable to disable browser for HF Spaces only if we don't have a token
+        if oauth_json and not oauth_token:
             os.environ['GOOGLE_DRIVE_HEADLESS'] = 'true'
-            logger.info("🌐 Set headless mode for HF Spaces")
+            logger.info("🌐 Set headless mode for HF Spaces (no token available)")
+        elif oauth_token:
+            logger.info("🎉 Using pre-authenticated token - browser not needed!")
         
         drive_manager = GoogleDrivePickerManager()
         drive_available = drive_manager.is_available()
