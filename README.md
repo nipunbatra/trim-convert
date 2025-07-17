@@ -1,5 +1,3 @@
-# Video Toolkit
-
 A fast and efficient command-line tool for trimming MP4 videos with minimal processing and automatic audio extraction. This tool prioritizes speed by using stream copying when possible, falling back to re-encoding only when necessary for precision.
 
 ## Features
