@@ -1,0 +1,54 @@
+title: Video Toolkit
+description: A fast and efficient command-line tool for trimming MP4 videos with minimal processing and automatic audio extraction
+url: https://nipunbatra.github.io/video-toolkit
+baseurl: /video-toolkit
+
+# Jekyll configuration
+theme: minima
+plugins:
+  - jekyll-feed
+  - jekyll-sitemap
+  - jekyll-seo-tag
+
+# GitHub Pages configuration
+repository: nipunbatra/video-toolkit
+github:
+  repository_url: https://github.com/nipunbatra/video-toolkit
+
+# Site settings
+author:
+  name: Nipun Batra
+  email: nipun.batra@gmail.com
+
+# SEO settings
+logo: /assets/images/logo.png
+twitter:
+  username: nipunbatra
+  card: summary
+
+# Navigation
+header_pages:
+  - index.md
+
+# Markdown settings
+markdown: kramdown
+highlighter: rouge
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+
+# Exclude from processing
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor/bundle/
+  - vendor/cache/
+  - vendor/gems/
+  - vendor/ruby/
+  - .gitignore
+  - .git/
+
+# Include
+include:
+  - _pages

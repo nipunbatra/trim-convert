@@ -1,0 +1,75 @@
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Video processing outputs
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.webm
+*.flv
+*.wmv
+
+# Audio processing outputs
+*.aac
+*.mp3
+*.wav
+*.flac
+*.ogg
+*.m4a
+
+# Temporary files
+*.tmp
+*.temp
+*~
+*.swp
+*.swo
+
+# Logs
+*.log
+ffmpeg*.log
+
+# IDE/Editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Node.js (if adding any JS tools)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python (if adding any Python tools)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.env
+venv/
+env/
+
+# Build artifacts
+build/
+dist/
+*.tar.gz
+*.zip
+
+# Test outputs
+test_output/
+test_videos/
+
+# Personal/local config
+.local/
+config.local.*
+
+# Demo video exceptions (keep these)
+!demo/sample-*.mp4
+!demo/sample-*.aac

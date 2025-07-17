@@ -1,4 +1,4 @@
-# Video Processing Tool
+# Video Toolkit
 
 A fast and efficient command-line tool for trimming MP4 videos with minimal processing and automatic audio extraction. This tool prioritizes speed by using stream copying when possible, falling back to re-encoding only when necessary for precision.
 
@@ -30,7 +30,7 @@ A fast and efficient command-line tool for trimming MP4 videos with minimal proc
 
 **Step 1:** Download and make executable in one step
 ```bash
-curl -O https://raw.githubusercontent.com/nipunbatra/trim-convert/main/trim-convert.sh && chmod +x trim-convert.sh
+curl -O https://raw.githubusercontent.com/nipunbatra/video-toolkit/main/trim-convert.sh && chmod +x trim-convert.sh
 ```
 
 **Step 2:** Verify the script works
@@ -42,8 +42,8 @@ curl -O https://raw.githubusercontent.com/nipunbatra/trim-convert/main/trim-conv
 
 **Step 1:** Clone this repository
 ```bash
-git clone https://github.com/nipunbatra/trim-convert.git
-cd trim-convert
+git clone https://github.com/nipunbatra/video-toolkit.git
+cd video-toolkit
 ```
 
 **Step 2:** Make the script executable
@@ -217,7 +217,7 @@ All demo videos are verified to be free to use, modify, and distribute.
 
 ## License
 
-MIT License - See [LICENSE](LICENSE) file for details
+MIT License - See [LICENSE](https://github.com/nipunbatra/video-toolkit/blob/main/LICENSE) file for details
 
 ## Contributing
 
