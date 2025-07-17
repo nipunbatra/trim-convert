@@ -6,7 +6,13 @@ import shutil
 import logging
 import time
 from pathlib import Path
-from native_drive_picker import GoogleDrivePickerManager, get_native_picker_instructions, GOOGLE_DRIVE_AVAILABLE
+try:
+    from native_drive_picker import GoogleDrivePickerManager, get_native_picker_instructions, GOOGLE_DRIVE_AVAILABLE
+except ImportError:
+    GOOGLE_DRIVE_AVAILABLE = False
+    GoogleDrivePickerManager = None
+    def get_native_picker_instructions():
+        return "Google Drive integration not available in this environment."
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -312,8 +318,20 @@ def download_from_google_drive(file_id, file_display, drive_manager):
 
 # Initialize Google Drive manager
 try:
-    drive_manager = GoogleDrivePickerManager()
-    drive_available = drive_manager.is_available()
+    if GOOGLE_DRIVE_AVAILABLE and GoogleDrivePickerManager:
+        # Check if running on HF Space and use secret
+        oauth_json = os.getenv('OAUTH_CREDENTIALS_JSON')
+        if oauth_json:
+            # Write the secret to a temporary file
+            with open('oauth_credentials.json', 'w') as f:
+                f.write(oauth_json)
+            logger.info("OAuth credentials loaded from HF secret")
+        
+        drive_manager = GoogleDrivePickerManager()
+        drive_available = drive_manager.is_available()
+    else:
+        drive_manager = None
+        drive_available = False
 except Exception as e:
     logger.warning(f"Google Drive initialization failed: {e}")
     drive_manager = None
@@ -346,7 +364,7 @@ function seekVideo(slider_value, video_id) {
 }
 """
 
-with gr.Blocks(title="Video Trimmer Tool", theme=gr.themes.Soft(), css=custom_css, js=custom_js) as demo:
+with gr.Blocks(title="Video Trimmer Tool", theme=gr.themes.Soft(), css=custom_css) as demo:
     gr.Markdown("""
     # 🎬 Video Trimmer Demo
     Upload an MP4 video, set trim points, and generate trimmed video + audio files.
