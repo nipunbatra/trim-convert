@@ -630,15 +630,13 @@ with gr.Blocks(title="Video Trimmer Tool", theme=gr.themes.Soft(), css=custom_cs
     start_slider.change(
         fn=update_start_and_seek,
         inputs=[start_slider],
-        outputs=[start_time_display],
-        js="(value) => { const video = document.querySelector('#main_video_player video'); if (video && !isNaN(value)) { video.currentTime = value; } return value; }"
+        outputs=[start_time_display]
     )
     
     end_slider.change(
         fn=update_end_and_seek,
         inputs=[end_slider],
-        outputs=[end_time_display],
-        js="(value) => { const video = document.querySelector('#main_video_player video'); if (video && !isNaN(value)) { video.currentTime = value; } return value; }"
+        outputs=[end_time_display]
     )
     
     # Google Drive native picker event handlers
