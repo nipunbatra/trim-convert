@@ -347,12 +347,20 @@ try:
         if oauth_token:
             import base64
             logger.info(f"📝 OAuth token length: {len(oauth_token)} characters")
-            # Decode and write the token to a temporary file
+            # Smart detection: try base64 decode, fallback to raw
             try:
-                token_data = base64.b64decode(oauth_token)
+                try:
+                    # Try base64 decode first (for HF Spaces secrets)
+                    token_data = base64.b64decode(oauth_token, validate=True)
+                    logger.info("✅ Detected and decoded base64-encoded token")
+                except Exception:
+                    # If base64 fails, treat as raw binary (shouldn't happen in env vars)
+                    logger.info("ℹ️ Not base64, treating as raw token data")
+                    token_data = oauth_token.encode('latin1')
+                
                 with open('oauth_token.pickle', 'wb') as f:
                     f.write(token_data)
-                logger.info("✅ OAuth token loaded from HF secret and written to file")
+                logger.info("✅ OAuth token written to file")
                 
                 # Verify file was created
                 if os.path.exists('oauth_token.pickle'):
@@ -361,7 +369,8 @@ try:
                 else:
                     logger.error("❌ Failed to create oauth_token.pickle file")
             except Exception as e:
-                logger.error(f"❌ Failed to decode OAuth token: {e}")
+                logger.error(f"❌ Failed to process OAuth token: {e}")
+                logger.info("💡 Tip: Encode your token with: base64 -i oauth_token.pickle")
         else:
             logger.info("ℹ️ No OAuth token secret found - checking for local file")
             if os.path.exists('oauth_token.pickle'):
