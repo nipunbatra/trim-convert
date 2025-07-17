@@ -1051,8 +1051,18 @@ setTimeout(updateVideoSeek, 2000);
         outputs=[main_video_player, load_status, video_info, start_slider, end_slider, video_scrubber, start_time_display, end_time_display]
     )
     
+    def browse_drive_handler():
+        """Handler for browse drive button with error handling"""
+        try:
+            result = browse_drive_files()
+            logger.info(f"Browse Drive result: {result[:100]}...")
+            return result
+        except Exception as e:
+            logger.error(f"Browse Drive error: {e}")
+            return f"❌ Browse error: {str(e)}"
+    
     browse_drive_btn.click(
-        fn=browse_drive_files,
+        fn=browse_drive_handler,
         outputs=[load_status]
     )
     
