@@ -21,7 +21,7 @@ jobs:
         
       - name: Copy README and assets to docs
         run: |
-          cp README.md docs/README.md
+          cp README_DOCS.md docs/index.md
           cp -r demo docs/
         
       - name: Setup Pages
