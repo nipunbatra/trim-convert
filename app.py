@@ -76,22 +76,35 @@ def extract_drive_file_id(input_str):
     """Extract file ID from Drive link or return input if it's already a file ID"""
     import re
     
-    # Check if it's a Drive link
+    if not input_str:
+        return None
+    
+    input_str = input_str.strip()
+    logger.info(f"🔍 Extracting file ID from: {input_str}")
+    
+    # Check if it's a Drive link - more comprehensive patterns
     drive_link_patterns = [
         r'https://drive\.google\.com/file/d/([a-zA-Z0-9-_]+)',
         r'https://drive\.google\.com/open\?id=([a-zA-Z0-9-_]+)',
-        r'https://docs\.google\.com/file/d/([a-zA-Z0-9-_]+)'
+        r'https://docs\.google\.com/file/d/([a-zA-Z0-9-_]+)',
+        r'drive\.google\.com/file/d/([a-zA-Z0-9-_]+)',  # Without https
+        r'id=([a-zA-Z0-9-_]+)',  # Just the ID parameter
+        r'/d/([a-zA-Z0-9-_]+)/'  # Pattern with /d/ and trailing slash
     ]
     
     for pattern in drive_link_patterns:
         match = re.search(pattern, input_str)
         if match:
-            return match.group(1)
+            file_id = match.group(1)
+            logger.info(f"✅ Extracted file ID: {file_id}")
+            return file_id
     
-    # Check if it's already a file ID (alphanumeric string)
-    if re.match(r'^[a-zA-Z0-9-_]+$', input_str.strip()):
-        return input_str.strip()
+    # Check if it's already a file ID (alphanumeric string with hyphens/underscores)
+    if re.match(r'^[a-zA-Z0-9-_]{25,}$', input_str):  # At least 25 chars for Drive file IDs
+        logger.info(f"✅ Using direct file ID: {input_str}")
+        return input_str
     
+    logger.warning(f"❌ Could not extract file ID from: {input_str}")
     return None
 
 def download_from_drive(service, file_id, filename):
@@ -452,7 +465,6 @@ setTimeout(updateVideoSeek, 2000);
                 )
                 
                 remote_load_btn = gr.Button("📥 Load Remote Video", variant="primary")
-                browse_drive_btn = gr.Button("📂 Browse Drive", variant="secondary")
         
         # Universal status display
         load_status = gr.Textbox(
@@ -473,28 +485,41 @@ setTimeout(updateVideoSeek, 2000);
                     elem_classes=["video-container"]
                 )
                 
-                # Integrated video controls
-                with gr.Row():
-                    play_btn = gr.Button("▶️ Play", variant="success", size="sm")
-                    pause_btn = gr.Button("⏸️ Pause", variant="secondary", size="sm")
-                    seek_current_btn = gr.Button("📍 Seek to Current", variant="info", size="sm")
+                # Single range slider for trim selection
+                gr.Markdown("### ✂️ Trim Range Selector")
                 
-                # Video scrubber
-                gr.Markdown("### 🎛️ Video Scrubber")
-                video_scrubber = gr.Slider(
+                start_slider = gr.Slider(
                     minimum=0,
                     maximum=100,
                     value=0,
                     step=0.1,
-                    label="📹 Video Position",
-                    info="Scrub through the video"
+                    label="⏯️ Start Time",
+                    info="Drag to set trim start point"
                 )
                 
-                current_time_display = gr.Textbox(
-                    label="⏰ Current Time",
-                    value="0:00",
-                    interactive=False
+                end_slider = gr.Slider(
+                    minimum=0,
+                    maximum=100,
+                    value=100,
+                    step=0.1,
+                    label="⏹️ End Time",
+                    info="Drag to set trim end point"
                 )
+                
+                with gr.Row():
+                    start_time_display = gr.Textbox(
+                        label="⏯️ Start Time",
+                        value="0:00",
+                        interactive=False,
+                        scale=1
+                    )
+                    
+                    end_time_display = gr.Textbox(
+                        label="⏹️ End Time",
+                        value="1:40",
+                        interactive=False,
+                        scale=1
+                    )
             
             with gr.Column(scale=1):
                 # Video info and trim controls
@@ -504,42 +529,11 @@ setTimeout(updateVideoSeek, 2000);
                     value="Load a video to see information"
                 )
                 
-                gr.Markdown("### ✂️ Trim Settings")
+                gr.Markdown("### ✂️ Quick Actions")
                 
-                start_slider = gr.Slider(
-                    minimum=0,
-                    maximum=100,
-                    value=0,
-                    step=0.1,
-                    label="⏯️ Start Time",
-                    info="Trim start position"
-                )
-                
-                start_time_display = gr.Textbox(
-                    label="⏯️ Start Time",
-                    value="0:00",
-                    interactive=False
-                )
-                
-                end_slider = gr.Slider(
-                    minimum=0,
-                    maximum=100,
-                    value=100,
-                    step=0.1,
-                    label="⏹️ End Time",
-                    info="Trim end position"
-                )
-                
-                end_time_display = gr.Textbox(
-                    label="⏹️ End Time",
-                    value="1:40",
-                    interactive=False
-                )
-                
-                # Seek buttons
                 with gr.Row():
-                    seek_start_btn = gr.Button("🎯 Seek Start", variant="secondary", size="sm")
-                    seek_end_btn = gr.Button("🎯 Seek End", variant="secondary", size="sm")
+                    seek_start_btn = gr.Button("🎯 Seek to Start", variant="secondary", size="sm")
+                    seek_end_btn = gr.Button("🎯 Seek to End", variant="secondary", size="sm")
                 
                 trim_btn = gr.Button(
                     "✂️ Trim Video",
@@ -618,10 +612,8 @@ setTimeout(updateVideoSeek, 2000);
                 return "❌ Google Drive service not available. Check oauth_credentials.json"
             
             # Extract folder ID if it's a Drive link
-            folder_id = extract_drive_file_id(drive_folder_path)
-            if not folder_id:
-                # Try to use as folder ID directly
-                folder_id = drive_folder_path.strip()
+            from folder_utils import extract_drive_folder_id
+            folder_id = extract_drive_folder_id(drive_folder_path)
             
             from googleapiclient.http import MediaFileUpload
             
@@ -970,7 +962,7 @@ setTimeout(updateVideoSeek, 2000);
     def load_local_video(video_file):
         """Load local video file"""
         if not video_file:
-            return None, "Please select a video file", "No video loaded", None, None, None, None, None
+            return None, "Please select a video file", "No video loaded", None, None, None, None
         
         info, duration, start_val, end_val = get_video_info(video_file)
         return (
@@ -979,7 +971,6 @@ setTimeout(updateVideoSeek, 2000);
             info,  # video_info
             gr.Slider(minimum=0, maximum=duration, value=0, step=0.1),  # start_slider
             gr.Slider(minimum=0, maximum=duration, value=duration, step=0.1),  # end_slider
-            gr.Slider(minimum=0, maximum=duration, value=0, step=0.1),  # video_scrubber
             "0:00",  # start_time_display
             format_time(duration)  # end_time_display
         )
@@ -987,7 +978,7 @@ setTimeout(updateVideoSeek, 2000);
     def load_remote_video(input_path):
         """Load video from path or Drive link"""
         if not input_path:
-            return None, "Please enter a file path or Drive link", "No video loaded", None, None, None, None, None
+            return None, "Please enter a file path or Drive link", "No video loaded", None, None, None, None
         
         temp_file, status = load_video_from_path_or_drive(input_path)
         if temp_file:
@@ -998,12 +989,11 @@ setTimeout(updateVideoSeek, 2000);
                 info,       # video_info
                 gr.Slider(minimum=0, maximum=duration, value=0, step=0.1),  # start_slider
                 gr.Slider(minimum=0, maximum=duration, value=duration, step=0.1),  # end_slider
-                gr.Slider(minimum=0, maximum=duration, value=0, step=0.1),  # video_scrubber
                 "0:00",     # start_time_display
                 format_time(duration)  # end_time_display
             )
         else:
-            return None, status, "Failed to load video", None, None, None, None, None
+            return None, status, "Failed to load video", None, None, None, None
     
     def update_start_display(start_val):
         return format_time(start_val)
@@ -1011,8 +1001,11 @@ setTimeout(updateVideoSeek, 2000);
     def update_end_display(end_val):
         return format_time(end_val)
     
-    def update_current_time_display(current_val):
-        return format_time(current_val)
+    def validate_end_time(start_val, end_val):
+        """Ensure end time is >= start time"""
+        if end_val < start_val:
+            return gr.Slider(value=start_val)
+        return gr.Slider(value=end_val)
     
     def browse_drive_files():
         """Browse Drive files and show some examples"""
@@ -1042,31 +1035,18 @@ setTimeout(updateVideoSeek, 2000);
     local_load_btn.click(
         fn=load_local_video,
         inputs=[local_video_input],
-        outputs=[main_video_player, load_status, video_info, start_slider, end_slider, video_scrubber, start_time_display, end_time_display]
+        outputs=[main_video_player, load_status, video_info, start_slider, end_slider, start_time_display, end_time_display]
     )
     
     remote_load_btn.click(
         fn=load_remote_video,
         inputs=[remote_video_input],
-        outputs=[main_video_player, load_status, video_info, start_slider, end_slider, video_scrubber, start_time_display, end_time_display]
+        outputs=[main_video_player, load_status, video_info, start_slider, end_slider, start_time_display, end_time_display]
     )
     
-    def browse_drive_handler():
-        """Handler for browse drive button with error handling"""
-        try:
-            result = browse_drive_files()
-            logger.info(f"Browse Drive result: {result[:100]}...")
-            return result
-        except Exception as e:
-            logger.error(f"Browse Drive error: {e}")
-            return f"❌ Browse error: {str(e)}"
+    # Removed browse drive functionality as requested
     
-    browse_drive_btn.click(
-        fn=browse_drive_handler,
-        outputs=[load_status]
-    )
-    
-    # Slider change handlers
+    # Slider change handlers with validation
     start_slider.change(
         fn=update_start_display,
         inputs=[start_slider],
@@ -1079,35 +1059,29 @@ setTimeout(updateVideoSeek, 2000);
         outputs=[end_time_display]
     )
     
-    video_scrubber.change(
-        fn=update_current_time_display,
-        inputs=[video_scrubber],
-        outputs=[current_time_display]
+    # Validation: end must be >= start
+    start_slider.change(
+        fn=validate_end_time,
+        inputs=[start_slider, end_slider],
+        outputs=[end_slider]
     )
     
-    # Video control button handlers
-    play_btn.click(
+    # Slider seeking functionality
+    start_slider.change(
         fn=None,
-        inputs=[],
+        inputs=[start_slider],
         outputs=[],
-        js="() => { const videos = document.querySelectorAll('video'); videos.forEach(v => { if (v.src && v.readyState >= 2) v.play(); }); }"
+        js="(start_time) => { const videos = document.querySelectorAll('video'); videos.forEach(v => { if (v.src && v.readyState >= 2) v.currentTime = start_time; }); }"
     )
     
-    pause_btn.click(
+    end_slider.change(
         fn=None,
-        inputs=[],
+        inputs=[end_slider],
         outputs=[],
-        js="() => { const videos = document.querySelectorAll('video'); videos.forEach(v => { if (v.src && v.readyState >= 2) v.pause(); }); }"
+        js="(end_time) => { const videos = document.querySelectorAll('video'); videos.forEach(v => { if (v.src && v.readyState >= 2) v.currentTime = end_time; }); }"
     )
     
-    seek_current_btn.click(
-        fn=None,
-        inputs=[video_scrubber],
-        outputs=[],
-        js="(current_time) => { const videos = document.querySelectorAll('video'); videos.forEach(v => { if (v.src && v.readyState >= 2) v.currentTime = current_time; }); }"
-    )
-    
-    # Seek button handlers for trim points
+    # Seek button handlers for trim points  
     seek_start_btn.click(
         fn=None,
         inputs=[start_slider],
@@ -1120,14 +1094,6 @@ setTimeout(updateVideoSeek, 2000);
         inputs=[end_slider],
         outputs=[],
         js="(end_time) => { const videos = document.querySelectorAll('video'); videos.forEach(v => { if (v.src && v.readyState >= 2) v.currentTime = end_time; }); }"
-    )
-    
-    # Video scrubber seeking
-    video_scrubber.change(
-        fn=None,
-        inputs=[video_scrubber],
-        outputs=[],
-        js="(scrub_time) => { const videos = document.querySelectorAll('video'); videos.forEach(v => { if (v.src && v.readyState >= 2) v.currentTime = scrub_time; }); }"
     )
     
     # Trim button handler
