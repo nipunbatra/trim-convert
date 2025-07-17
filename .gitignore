@@ -70,6 +70,13 @@ test_videos/
 .local/
 config.local.*
 
+# Google Drive OAuth credentials (keep private!)
+oauth_credentials.json
+oauth_token.pickle
+service-account.json
+token.json
+credentials.json
+
 # Demo video exceptions (keep these)
 !demo/sample-*.mp4
 !demo/sample-*.aac
