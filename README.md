@@ -222,3 +222,24 @@ MIT License - See [LICENSE](https://github.com/nipunbatra/video-toolkit/blob/mai
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
+
+---
+
+## 📖 Documentation Website
+
+This repository has an auto-generated documentation website at: **https://nipunbatra.github.io/video-toolkit**
+
+### How Documentation Works
+
+- **Single source**: Edit only this `README.md` file
+- **Auto-build**: GitHub Actions automatically updates the website
+- **No manual work**: Never touch the `docs/` folder
+- **Live updates**: Changes appear on the website when you push to main
+
+### Making Documentation Changes
+
+1. **Edit this file**: `README.md` (you're reading it now!)
+2. **Commit and push**: `git add . && git commit -m "Update docs" && git push`
+3. **Done**: Website updates automatically in ~2 minutes
+
+**⚠️ Important**: Never edit files in the `docs/` folder - they're auto-generated!
