@@ -8,10 +8,92 @@ import shutil
 import logging
 import time
 from pathlib import Path
+import pickle
+import json
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaIoBaseDownload
+import io
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+# Google Drive configuration
+SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
+TOKEN_FILE = 'oauth_token.pickle'
+CREDENTIALS_FILE = 'oauth_credentials.json'
+
+def get_google_drive_service():
+    """Get Google Drive service with local OAuth credentials"""
+    creds = None
+    
+    # Check if token file exists
+    if os.path.exists(TOKEN_FILE):
+        with open(TOKEN_FILE, 'rb') as token:
+            creds = pickle.load(token)
+    
+    # If no valid credentials, authenticate
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            if not os.path.exists(CREDENTIALS_FILE):
+                logger.warning("⚠️ Google Drive credentials file not found. Local Google Drive integration disabled.")
+                return None
+            
+            flow = InstalledAppFlow.from_client_secrets_file(CREDENTIALS_FILE, SCOPES)
+            creds = flow.run_local_server(port=0)
+        
+        # Save credentials for next run
+        with open(TOKEN_FILE, 'wb') as token:
+            pickle.dump(creds, token)
+    
+    return build('drive', 'v3', credentials=creds)
+
+def list_drive_videos(service, folder_id=None):
+    """List video files from Google Drive"""
+    try:
+        query = "mimeType contains 'video/'"
+        if folder_id:
+            query += f" and '{folder_id}' in parents"
+        
+        results = service.files().list(
+            q=query,
+            pageSize=50,
+            fields="nextPageToken, files(id, name, size, mimeType, parents)"
+        ).execute()
+        
+        items = results.get('files', [])
+        return items
+    except Exception as e:
+        logger.error(f"❌ Error listing Drive videos: {e}")
+        return []
+
+def download_from_drive(service, file_id, filename):
+    """Download a file from Google Drive"""
+    try:
+        request = service.files().get_media(fileId=file_id)
+        
+        # Create temporary file
+        temp_dir = tempfile.mkdtemp()
+        temp_file = os.path.join(temp_dir, filename)
+        
+        with open(temp_file, 'wb') as fh:
+            downloader = MediaIoBaseDownload(fh, request)
+            done = False
+            while done is False:
+                status, done = downloader.next_chunk()
+                if status:
+                    logger.info(f"📥 Download progress: {int(status.progress() * 100)}%")
+        
+        logger.info(f"✅ Downloaded: {filename}")
+        return temp_file
+    except Exception as e:
+        logger.error(f"❌ Error downloading from Drive: {e}")
+        return None
 
 def process_video_trim(video_file, start_time, end_time):
     """Process video trimming using the trim-convert.sh script"""
@@ -181,118 +263,334 @@ custom_css = """
 
 with gr.Blocks(title="Video Trimmer Tool", theme=gr.themes.Soft(), css=custom_css) as demo:
     gr.Markdown("""
-    # 🎬 Video Trimmer Tool - Local Edition
-    Upload a video file, set trim points using the sliders, and get both trimmed video and extracted audio files.
+    # 🎬 Video Trimmer Tool - Local Edition with Google Drive
+    Upload a video file or select from Google Drive, set trim points using the sliders, and get both trimmed video and extracted audio files.
     
     **Features:**
     - ✂️ **Precise trimming** with visual sliders
     - 🎵 **Audio extraction** (AAC format)
     - 🚀 **Fast processing** using your proven trim-convert.sh script
-    - 📁 **Local files only** - no cloud complexity
+    - 📁 **Local files** + **Google Drive integration** with your own credentials
     
     **Supported formats:** MP4, MOV, AVI, MKV
     """)
     
-    with gr.Row():
-        with gr.Column(scale=2):
-            # Video upload and display
-            video_input = gr.File(
-                label="📁 Upload Video File",
-                file_types=[".mp4", ".mov", ".avi", ".mkv"],
-                type="filepath"
-            )
-            
-            video_player = gr.Video(
-                label="🎥 Video Player",
-                show_label=True,
-                elem_id="main_video_player",
-                elem_classes=["video-container"]
-            )
-            
-            video_info = gr.Textbox(
-                label="📊 Video Info",
-                interactive=False,
-                value="Upload a video to see information"
-            )
-        
-        with gr.Column(scale=1):
-            # Trim controls
-            gr.Markdown("### ✂️ Trim Settings")
-            gr.Markdown("**🎯 Drag sliders to set trim points:**")
-            
-            with gr.Group():
-                gr.Markdown("**🎯 Start point:**")
-                start_slider = gr.Slider(
-                    minimum=0,
-                    maximum=100,
-                    value=0,
-                    step=0.1,
-                    label="⏯️ Start Time",
-                    info="Drag to set start position",
-                    elem_classes=["slider-container"]
+    # Google Drive section
+    with gr.Tab("📁 Local Upload"):
+        with gr.Row():
+            with gr.Column(scale=2):
+                # Video upload and display
+                video_input = gr.File(
+                    label="📁 Upload Video File",
+                    file_types=[".mp4", ".mov", ".avi", ".mkv"],
+                    type="filepath"
                 )
                 
-                start_time_display = gr.Textbox(
-                    label="⏯️ Start Time",
-                    value="0:00",
-                    interactive=False,
-                    info="Current start time"
-                )
-            
-            with gr.Group():
-                gr.Markdown("**🎯 End point:**")
-                end_slider = gr.Slider(
-                    minimum=0,
-                    maximum=100,
-                    value=100,
-                    step=0.1,
-                    label="⏹️ End Time",
-                    info="Drag to set end position",
-                    elem_classes=["slider-container"]
+                video_player = gr.Video(
+                    label="🎥 Video Player",
+                    show_label=True,
+                    elem_id="main_video_player",
+                    elem_classes=["video-container"]
                 )
                 
-                end_time_display = gr.Textbox(
-                    label="⏹️ End Time",
-                    value="1:40",
+                video_info = gr.Textbox(
+                    label="📊 Video Info",
                     interactive=False,
-                    info="Current end time"
+                    value="Upload a video to see information"
                 )
             
-            trim_btn = gr.Button(
-                "✂️ Trim Video",
-                variant="primary",
-                size="lg"
-            )
-            
-            status_msg = gr.Textbox(
-                label="📝 Status",
-                interactive=False,
-                value="Ready to trim..."
-            )
-    
-    # Output section
-    gr.Markdown("### 📤 Output Files")
-    
-    with gr.Row():
-        with gr.Column():
-            output_video = gr.Video(
-                label="🎬 Trimmed Video",
-                show_label=True
-            )
+            with gr.Column(scale=1):
+                # Trim controls
+                gr.Markdown("### ✂️ Trim Settings")
+                gr.Markdown("**🎯 Drag sliders to set trim points:**")
+                
+                with gr.Group():
+                    gr.Markdown("**🎯 Start point:**")
+                    start_slider = gr.Slider(
+                        minimum=0,
+                        maximum=100,
+                        value=0,
+                        step=0.1,
+                        label="⏯️ Start Time",
+                        info="Drag to set start position",
+                        elem_classes=["slider-container"]
+                    )
+                    
+                    start_time_display = gr.Textbox(
+                        label="⏯️ Start Time",
+                        value="0:00",
+                        interactive=False,
+                        info="Current start time"
+                    )
+                
+                with gr.Group():
+                    gr.Markdown("**🎯 End point:**")
+                    end_slider = gr.Slider(
+                        minimum=0,
+                        maximum=100,
+                        value=100,
+                        step=0.1,
+                        label="⏹️ End Time",
+                        info="Drag to set end position",
+                        elem_classes=["slider-container"]
+                    )
+                    
+                    end_time_display = gr.Textbox(
+                        label="⏹️ End Time",
+                        value="1:40",
+                        interactive=False,
+                        info="Current end time"
+                    )
+                
+                trim_btn = gr.Button(
+                    "✂️ Trim Video",
+                    variant="primary",
+                    size="lg"
+                )
+                
+                status_msg = gr.Textbox(
+                    label="📝 Status",
+                    interactive=False,
+                    value="Ready to trim..."
+                )
         
-        with gr.Column():
-            output_audio_player = gr.Audio(
-                label="🎵 Play Extracted Audio",
-                show_label=True,
-                type="filepath"
-            )
+        # Output section
+        gr.Markdown("### 📤 Output Files")
+        
+        with gr.Row():
+            with gr.Column():
+                output_video = gr.Video(
+                    label="🎬 Trimmed Video",
+                    show_label=True
+                )
             
-            output_audio_download = gr.File(
-                label="💾 Download Audio (AAC)",
-                show_label=True
-            )
+            with gr.Column():
+                output_audio_player = gr.Audio(
+                    label="🎵 Play Extracted Audio",
+                    show_label=True,
+                    type="filepath"
+                )
+                
+                output_audio_download = gr.File(
+                    label="💾 Download Audio (AAC)",
+                    show_label=True
+                )
+
+    # Google Drive tab
+    with gr.Tab("☁️ Google Drive"):
+        def get_drive_files():
+            """Get list of video files from Google Drive"""
+            try:
+                service = get_google_drive_service()
+                if not service:
+                    return gr.Dropdown(choices=[], value=None, label="❌ Google Drive not available")
+                
+                videos = list_drive_videos(service)
+                if not videos:
+                    return gr.Dropdown(choices=[], value=None, label="📁 No videos found in Drive")
+                
+                choices = [(f"{video['name']} ({video.get('size', 'Unknown')} bytes)", video['id']) for video in videos]
+                return gr.Dropdown(choices=choices, value=None, label="📹 Select Video from Drive")
+            except Exception as e:
+                logger.error(f"❌ Error getting Drive files: {e}")
+                return gr.Dropdown(choices=[], value=None, label="❌ Error loading Drive files")
+        
+        def load_drive_video(file_id):
+            """Load selected video from Google Drive"""
+            if not file_id:
+                return None, "Please select a video file first"
+            
+            try:
+                service = get_google_drive_service()
+                if not service:
+                    return None, "❌ Google Drive service not available"
+                
+                # Get file info
+                file_info = service.files().get(fileId=file_id).execute()
+                filename = file_info['name']
+                
+                # Download file
+                temp_file = download_from_drive(service, file_id, filename)
+                if temp_file:
+                    return temp_file, f"✅ Loaded: {filename}"
+                else:
+                    return None, f"❌ Failed to download: {filename}"
+            except Exception as e:
+                logger.error(f"❌ Error loading Drive video: {e}")
+                return None, f"❌ Error: {str(e)}"
+        
+        with gr.Row():
+            with gr.Column():
+                gr.Markdown("### 🔗 Google Drive Integration")
+                gr.Markdown("**Requirements:** Place your `oauth_credentials.json` file in the same directory as this app")
+                
+                drive_file_dropdown = gr.Dropdown(
+                    choices=[],
+                    value=None,
+                    label="📹 Select Video from Drive",
+                    info="Choose a video file from your Google Drive"
+                )
+                
+                with gr.Row():
+                    refresh_drive_btn = gr.Button("🔄 Refresh Drive List", variant="secondary")
+                    load_drive_btn = gr.Button("📥 Load Selected Video", variant="primary")
+                
+                drive_status = gr.Textbox(
+                    label="📝 Drive Status",
+                    interactive=False,
+                    value="Click 'Refresh Drive List' to connect to Google Drive"
+                )
+            
+            with gr.Column():
+                drive_video_player = gr.Video(
+                    label="🎥 Drive Video Player",
+                    show_label=True
+                )
+                
+                drive_video_info = gr.Textbox(
+                    label="📊 Drive Video Info",
+                    interactive=False,
+                    value="Load a video from Drive to see information"
+                )
+        
+        # Drive video controls (same as local)
+        with gr.Row():
+            with gr.Column():
+                gr.Markdown("### ✂️ Trim Settings")
+                
+                with gr.Group():
+                    drive_start_slider = gr.Slider(
+                        minimum=0,
+                        maximum=100,
+                        value=0,
+                        step=0.1,
+                        label="⏯️ Start Time"
+                    )
+                    
+                    drive_start_time_display = gr.Textbox(
+                        label="⏯️ Start Time",
+                        value="0:00",
+                        interactive=False
+                    )
+                
+                with gr.Group():
+                    drive_end_slider = gr.Slider(
+                        minimum=0,
+                        maximum=100,
+                        value=100,
+                        step=0.1,
+                        label="⏹️ End Time"
+                    )
+                    
+                    drive_end_time_display = gr.Textbox(
+                        label="⏹️ End Time",
+                        value="1:40",
+                        interactive=False
+                    )
+                
+                drive_trim_btn = gr.Button(
+                    "✂️ Trim Drive Video",
+                    variant="primary",
+                    size="lg"
+                )
+                
+                drive_status_msg = gr.Textbox(
+                    label="📝 Status",
+                    interactive=False,
+                    value="Ready to trim..."
+                )
+        
+        # Drive output section
+        gr.Markdown("### 📤 Output Files")
+        
+        with gr.Row():
+            with gr.Column():
+                drive_output_video = gr.Video(
+                    label="🎬 Trimmed Video",
+                    show_label=True
+                )
+            
+            with gr.Column():
+                drive_output_audio_player = gr.Audio(
+                    label="🎵 Play Extracted Audio",
+                    show_label=True,
+                    type="filepath"
+                )
+                
+                drive_output_audio_download = gr.File(
+                    label="💾 Download Audio (AAC)",
+                    show_label=True
+                )
+        
+        # Drive event handlers
+        def refresh_drive_list():
+            try:
+                service = get_google_drive_service()
+                if not service:
+                    return gr.Dropdown(choices=[], value=None), "❌ Google Drive credentials not found. Please add oauth_credentials.json"
+                
+                videos = list_drive_videos(service)
+                if not videos:
+                    return gr.Dropdown(choices=[], value=None), "📁 No videos found in your Google Drive"
+                
+                choices = [(f"{video['name']} ({video.get('size', 'Unknown')} bytes)", video['id']) for video in videos]
+                return gr.Dropdown(choices=choices, value=None), f"✅ Found {len(videos)} videos in your Drive"
+            except Exception as e:
+                logger.error(f"❌ Error refreshing Drive list: {e}")
+                return gr.Dropdown(choices=[], value=None), f"❌ Error: {str(e)}"
+        
+        def load_and_update_drive_video(file_id):
+            if not file_id:
+                return None, "Please select a video file first", None, None, None, None
+            
+            temp_file, status = load_drive_video(file_id)
+            if temp_file:
+                info, duration, start_val, end_val = get_video_info(temp_file)
+                return (
+                    temp_file,  # drive_video_player
+                    status,     # drive_status
+                    info,       # drive_video_info
+                    gr.Slider(minimum=0, maximum=duration, value=0, step=0.1),  # drive_start_slider
+                    gr.Slider(minimum=0, maximum=duration, value=duration, step=0.1),  # drive_end_slider
+                    "0:00",     # drive_start_time_display
+                    format_time(duration)  # drive_end_time_display
+                )
+            else:
+                return None, status, "Failed to load video", None, None, None, None
+        
+        # Set up Drive event handlers
+        refresh_drive_btn.click(
+            fn=refresh_drive_list,
+            outputs=[drive_file_dropdown, drive_status]
+        )
+        
+        load_drive_btn.click(
+            fn=load_and_update_drive_video,
+            inputs=[drive_file_dropdown],
+            outputs=[drive_video_player, drive_status, drive_video_info, drive_start_slider, drive_end_slider, drive_start_time_display, drive_end_time_display]
+        )
+        
+        # Drive slider event handlers
+        drive_start_slider.change(
+            fn=lambda x: format_time(x),
+            inputs=[drive_start_slider],
+            outputs=[drive_start_time_display]
+        )
+        
+        drive_end_slider.change(
+            fn=lambda x: format_time(x),
+            inputs=[drive_end_slider],
+            outputs=[drive_end_time_display]
+        )
+        
+        # Drive trim button
+        drive_trim_btn.click(
+            fn=process_video_trim,
+            inputs=[drive_video_player, drive_start_slider, drive_end_slider],
+            outputs=[drive_output_video, drive_output_audio_player, drive_output_audio_download, drive_status_msg]
+        )
     
-    # Event handlers
+    # Event handlers for Local Upload tab
     def update_video_and_sliders(video_file):
         info, duration, start_val, end_val = get_video_info(video_file)
         return (
