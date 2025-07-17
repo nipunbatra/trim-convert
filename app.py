@@ -327,6 +327,10 @@ try:
                 f.write(oauth_json)
             logger.info("OAuth credentials loaded from HF secret")
         
+        # Set environment variable to disable browser for HF Spaces
+        if oauth_json:
+            os.environ['GOOGLE_DRIVE_HEADLESS'] = 'true'
+        
         drive_manager = GoogleDrivePickerManager()
         drive_available = drive_manager.is_available()
     else:
@@ -603,15 +607,13 @@ with gr.Blocks(title="Video Trimmer Tool", theme=gr.themes.Soft(), css=custom_cs
     start_slider.change(
         fn=update_start_display,
         inputs=[start_slider],
-        outputs=[start_time_display],
-        js="(value) => { const video = document.querySelector('#main_video_player video'); if (video && !isNaN(value)) { video.currentTime = value; } return value; }"
+        outputs=[start_time_display]
     )
     
     end_slider.change(
         fn=update_end_display,
         inputs=[end_slider],
-        outputs=[end_time_display],
-        js="(value) => { const video = document.querySelector('#main_video_player video'); if (video && !isNaN(value)) { video.currentTime = value; } return value; }"
+        outputs=[end_time_display]
     )
     
     # Google Drive native picker event handlers
