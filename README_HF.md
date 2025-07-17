@@ -1,45 +1,15 @@
----
-title: Video Trimmer Tool
-emoji: ✂️
-colorFrom: blue
-colorTo: purple
-sdk: gradio
-sdk_version: 4.0.0
-app_file: app.py
-pinned: false
-license: mit
----
-
 # Video Trimmer Tool
 
 A fast and efficient video trimming toolkit with an interactive web interface for MP4 video processing. Features visual trimming with drag-to-scrub sliders and automatic audio extraction.
 
-🚀 **Try it live on Hugging Face Spaces!**
-
-📖 **Full Documentation**: https://nipunbatra.github.io/video-toolkit/
-
-## Quick Start
-
-### Hugging Face Spaces (Recommended)
-The easiest way to use this tool is through our Hugging Face Space - no installation required!
-
-### Local Installation
-```bash
-git clone https://github.com/nipunbatra/video-toolkit.git
-cd video-toolkit
-pip install -r requirements.txt
-python app.py
-```
-
 ## Features
 
 - **Interactive Web Interface**: Visual video scrubbing with drag-to-trim sliders
-- **Smart Trimming**: Find exact cut points with real-time video seeking  
+- **Smart Trimming**: Find exact cut points with real-time video seeking
 - **Audio Extraction**: Automatic AAC extraction with built-in player
-- **Google Drive Integration**: Load videos from and upload results to Google Drive (local only)
 - **Multiple Formats**: Support for MP4, MOV, AVI, and MKV files
 - **Fast Processing**: Stream copying when possible for speed
-- **Command Line Tool**: Fast bash script for automated processing
+- **Download**: Get both trimmed video and extracted audio files
 
 ## How to Use
 
@@ -60,12 +30,4 @@ python app.py
 - **Input**: MP4, MOV, AVI, MKV
 - **Output**: MP4 video + AAC audio
 
-## Full Documentation
-
-For complete installation instructions, command-line usage, Google Drive setup, and advanced features, visit our documentation website:
-
-**📖 https://nipunbatra.github.io/video-toolkit/**
-
-## License
-
-MIT License - See [LICENSE](LICENSE) file for details.
+The tool automatically handles format conversion and optimization for web playback.
