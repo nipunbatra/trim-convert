@@ -19,8 +19,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         
-      - name: Copy README to docs
-        run: cp README.md docs/README.md
+      - name: Copy README and assets to docs
+        run: |
+          cp README.md docs/README.md
+          cp -r demo docs/
         
       - name: Setup Pages
         uses: actions/configure-pages@v4
