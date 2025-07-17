@@ -261,7 +261,38 @@ custom_css = """
 }
 """
 
-with gr.Blocks(title="Video Trimmer Tool", theme=gr.themes.Soft(), css=custom_css) as demo:
+with gr.Blocks(title="Video Trimmer Tool", theme=gr.themes.Soft(), css=custom_css, head="""
+<script>
+function seekVideo(time) {
+    const videos = document.querySelectorAll('video');
+    videos.forEach(video => {
+        if (video.src && video.readyState >= 2) {
+            video.currentTime = time;
+        }
+    });
+}
+
+function updateVideoSeek() {
+    const startSlider = document.querySelector('input[type="range"]');
+    const endSlider = document.querySelectorAll('input[type="range"]')[1];
+    
+    if (startSlider && endSlider) {
+        startSlider.addEventListener('input', (e) => {
+            seekVideo(parseFloat(e.target.value));
+        });
+        
+        endSlider.addEventListener('input', (e) => {
+            seekVideo(parseFloat(e.target.value));
+        });
+    }
+}
+
+// Initialize after DOM loads
+document.addEventListener('DOMContentLoaded', updateVideoSeek);
+// Also try after a delay for dynamic content
+setTimeout(updateVideoSeek, 2000);
+</script>
+""") as demo:
     gr.Markdown("""
     # 🎬 Video Trimmer Tool - Local Edition with Google Drive
     Upload a video file or select from Google Drive, set trim points using the sliders, and get both trimmed video and extracted audio files.
@@ -322,6 +353,12 @@ with gr.Blocks(title="Video Trimmer Tool", theme=gr.themes.Soft(), css=custom_cs
                         interactive=False,
                         info="Current start time"
                     )
+                    
+                    seek_start_btn = gr.Button(
+                        "🎯 Seek to Start",
+                        variant="secondary",
+                        size="sm"
+                    )
                 
                 with gr.Group():
                     gr.Markdown("**🎯 End point:**")
@@ -340,6 +377,12 @@ with gr.Blocks(title="Video Trimmer Tool", theme=gr.themes.Soft(), css=custom_cs
                         value="1:40",
                         interactive=False,
                         info="Current end time"
+                    )
+                    
+                    seek_end_btn = gr.Button(
+                        "🎯 Seek to End",
+                        variant="secondary",
+                        size="sm"
                     )
                 
                 trim_btn = gr.Button(
@@ -472,6 +515,12 @@ with gr.Blocks(title="Video Trimmer Tool", theme=gr.themes.Soft(), css=custom_cs
                         value="0:00",
                         interactive=False
                     )
+                    
+                    drive_seek_start_btn = gr.Button(
+                        "🎯 Seek to Start",
+                        variant="secondary",
+                        size="sm"
+                    )
                 
                 with gr.Group():
                     drive_end_slider = gr.Slider(
@@ -486,6 +535,12 @@ with gr.Blocks(title="Video Trimmer Tool", theme=gr.themes.Soft(), css=custom_cs
                         label="⏹️ End Time",
                         value="1:40",
                         interactive=False
+                    )
+                    
+                    drive_seek_end_btn = gr.Button(
+                        "🎯 Seek to End",
+                        variant="secondary",
+                        size="sm"
                     )
                 
                 drive_trim_btn = gr.Button(
@@ -583,6 +638,21 @@ with gr.Blocks(title="Video Trimmer Tool", theme=gr.themes.Soft(), css=custom_cs
             outputs=[drive_end_time_display]
         )
         
+        # Drive seek button handlers
+        drive_seek_start_btn.click(
+            fn=None,
+            inputs=[drive_start_slider],
+            outputs=[],
+            js="(start_time) => { const videos = document.querySelectorAll('video'); videos.forEach(v => { if (v.src && v.readyState >= 2) v.currentTime = start_time; }); }"
+        )
+        
+        drive_seek_end_btn.click(
+            fn=None,
+            inputs=[drive_end_slider],
+            outputs=[],
+            js="(end_time) => { const videos = document.querySelectorAll('video'); videos.forEach(v => { if (v.src && v.readyState >= 2) v.currentTime = end_time; }); }"
+        )
+        
         # Drive trim button
         drive_trim_btn.click(
             fn=process_video_trim,
@@ -624,6 +694,21 @@ with gr.Blocks(title="Video Trimmer Tool", theme=gr.themes.Soft(), css=custom_cs
         fn=update_end_display,
         inputs=[end_slider],
         outputs=[end_time_display]
+    )
+    
+    # Seek button handlers
+    seek_start_btn.click(
+        fn=None,
+        inputs=[start_slider],
+        outputs=[],
+        js="(start_time) => { const videos = document.querySelectorAll('video'); videos.forEach(v => { if (v.src && v.readyState >= 2) v.currentTime = start_time; }); }"
+    )
+    
+    seek_end_btn.click(
+        fn=None,
+        inputs=[end_slider],
+        outputs=[],
+        js="(end_time) => { const videos = document.querySelectorAll('video'); videos.forEach(v => { if (v.src && v.readyState >= 2) v.currentTime = end_time; }); }"
     )
     
     # Trim button handler
