@@ -321,15 +321,32 @@ try:
     if GOOGLE_DRIVE_AVAILABLE and GoogleDrivePickerManager:
         # Check if running on HF Space and use secret
         oauth_json = os.getenv('OAUTH_CREDENTIALS_JSON')
+        logger.info(f"🔍 Checking for OAuth secret... Found: {oauth_json is not None}")
+        
         if oauth_json:
+            logger.info(f"📝 OAuth secret length: {len(oauth_json)} characters")
             # Write the secret to a temporary file
             with open('oauth_credentials.json', 'w') as f:
                 f.write(oauth_json)
-            logger.info("OAuth credentials loaded from HF secret")
+            logger.info("✅ OAuth credentials loaded from HF secret and written to file")
+            
+            # Verify file was created
+            if os.path.exists('oauth_credentials.json'):
+                file_size = os.path.getsize('oauth_credentials.json')
+                logger.info(f"✅ oauth_credentials.json created successfully ({file_size} bytes)")
+            else:
+                logger.error("❌ Failed to create oauth_credentials.json file")
+        else:
+            logger.info("ℹ️ No OAuth secret found - checking for local file")
+            if os.path.exists('oauth_credentials.json'):
+                logger.info("✅ Using local oauth_credentials.json file")
+            else:
+                logger.warning("⚠️ No OAuth credentials available (neither secret nor local file)")
         
         # Set environment variable to disable browser for HF Spaces
         if oauth_json:
             os.environ['GOOGLE_DRIVE_HEADLESS'] = 'true'
+            logger.info("🌐 Set headless mode for HF Spaces")
         
         drive_manager = GoogleDrivePickerManager()
         drive_available = drive_manager.is_available()
